@@ -5,7 +5,8 @@ on:
     - cron: "20 0 * * *"
   workflow_dispatch:
   push:
-    paths: [.github/workflows/koi.yml]
+    paths:
+      - .github/workflows/koi.yml
 
 permissions:
   contents: write
@@ -16,22 +17,54 @@ jobs:
   koi:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
 
-      - uses: yalongwastaken/git-koi@v1
-        with:
-          body: white
-          output-dir: koi
+      - name: Generate customized koi
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
 
-      - name: Commit the koi if it changed
+          git clone --quiet --depth 1 --branch v1.0.2 \
+            https://github.com/yalongwastaken/git-koi.git \
+            "$RUNNER_TEMP/git-koi"
+
+          cd "$RUNNER_TEMP/git-koi"
+
+          # Lower growth requirements
+          sed -i \
+            -e 's/FULL_COLOR_CONTRIBUTIONS: u64 = 500;/FULL_COLOR_CONTRIBUTIONS: u64 = 100;/' \
+            -e 's/YOUNG_SHAPE_CONTRIBUTIONS: u64 = 1_500;/YOUNG_SHAPE_CONTRIBUTIONS: u64 = 300;/' \
+            -e 's/ADULT_CONTRIBUTIONS: u64 = 12_750;/ADULT_CONTRIBUTIONS: u64 = 2_500;/' \
+            -e 's/MAX_GROWTH_CONTRIBUTIONS: u64 = 100_000;/MAX_GROWTH_CONTRIBUTIONS: u64 = 10_000;/' \
+            src/koi.rs
+
+          # Always swim in a circle
+          sed -i \
+            's/let behavior = select_behavior(&koi_development);/let behavior = Behavior::Cruise;/' \
+            src/main.rs
+
+          cargo build --release --locked
+
+          ./target/release/git-koi collect \
+            "$GITHUB_REPOSITORY_OWNER" \
+            --output "$RUNNER_TEMP/koi-snapshot.json"
+
+          ./target/release/git-koi render \
+            "$RUNNER_TEMP/koi-snapshot.json" \
+            --output-dir "$GITHUB_WORKSPACE/koi" \
+            --body white
+
+      - name: Commit koi
         shell: bash
         run: |
           git add koi/koi.gif
           if git diff --cached --quiet; then
-            echo "The koi is unchanged; nothing to commit."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit --quiet --message "koi: draw the day's koi"
-          git push --quiet
+          git commit -m "koi: refresh customized koi"
+          git push
