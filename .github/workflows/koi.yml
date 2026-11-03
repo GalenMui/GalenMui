@@ -47,6 +47,9 @@ jobs:
             's/let behavior = select_behavior(&koi_development);/let behavior = Behavior::Cruise;/' \
             src/main.rs
 
+          # Use fully grown koi anatomy, retaining real activity colors
+          sed -i '/^fn calculate_anatomy(total_contributions: u64) -> KoiAnatomy {/a\    let total_contributions = total_contributions.max(10_000);' src/render.rs
+
           cargo build --release --locked
 
           ./target/release/git-koi collect \
