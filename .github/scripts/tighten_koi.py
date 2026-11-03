@@ -6,7 +6,7 @@ path = Path(sys.argv[1])
 
 FISH_SCALE = 1.0
 SWIM_RADIUS = 0.65
-PADDING = 14
+PADDING = 30
 
 placed = []
 bounds_all = None

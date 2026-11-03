@@ -8,6 +8,7 @@ on:
     paths:
       - .github/workflows/koi.yml
       - .github/scripts/tighten_koi.py
+      - .github/scripts/animate_intro.py
 
 permissions:
   contents: write
@@ -69,11 +70,12 @@ jobs:
         run: |
           python -m pip install --quiet pillow
           python .github/scripts/tighten_koi.py koi/koi.gif
+          python .github/scripts/animate_intro.py assets/intro.gif
 
       - name: Commit koi
         shell: bash
         run: |
-          git add koi/koi.gif
+          git add koi/koi.gif assets/intro.gif
           if git diff --cached --quiet; then
             exit 0
           fi
