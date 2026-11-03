@@ -50,6 +50,10 @@ jobs:
           # Use fully grown koi anatomy, retaining real activity colors
           sed -i '/^fn calculate_anatomy(total_contributions: u64) -> KoiAnatomy {/a\    let total_contributions = total_contributions.max(10_000);' src/render.rs
 
+          # Slimmer adult koi proportions
+          sed -i 's/const ADULT_BODY_WIDTH_FRACTION: f64 = 0.2;/const ADULT_BODY_WIDTH_FRACTION: f64 = 0.18;/' src/render.rs
+          sed -i 's/const MATURE_BODY_WIDTH_GAIN: f64 = 0.045;/const MATURE_BODY_WIDTH_GAIN: f64 = 0.010;/' src/render.rs
+
           cargo build --release --locked
 
           ./target/release/git-koi collect \

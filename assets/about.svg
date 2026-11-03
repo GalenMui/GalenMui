@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="440" height="200" viewBox="0 0 440 200">
+  <rect width="440" height="200" rx="14" fill="#0d1117"/>
+  <rect x="0.5" y="0.5" width="439" height="199"
+        rx="13.5" fill="none" stroke="#30363d"/>
+
+  <circle cx="24" cy="24" r="5" fill="#f87171"/>
+  <circle cx="41" cy="24" r="5" fill="#fbbf24"/>
+  <circle cx="58" cy="24" r="5" fill="#4ade80"/>
+
+  <text x="78" y="28" font-family="monospace"
+        font-size="13" fill="#8b949e">galen / profile.sv</text>
+
+  <line x1="20" y1="45" x2="420" y2="45"
+        stroke="#30363d"/>
+
+  <text x="23" y="81" font-family="Arial, sans-serif"
+        font-size="29" font-weight="bold"
+        fill="#e6edf3">GALEN MUI</text>
+
+  <rect x="22" y="95" width="126" height="28"
+        rx="5" fill="#392557"/>
+  <text x="34" y="114" font-family="monospace"
+        font-size="14" font-weight="bold"
+        fill="#d8b4fe">ASIC DESIGN</text>
+
+  <rect x="155" y="95" width="255" height="28"
+        rx="5" fill="#143747"/>
+  <text x="167" y="114" font-family="monospace"
+        font-size="14" font-weight="bold"
+        fill="#89d5ec">COMPUTER ARCHITECTURE</text>
+
+  <text x="23" y="151" font-family="monospace"
+        font-size="15" fill="#b9c4d0">
+    RTL / SystemVerilog / VLSI
+  </text>
+
+  <line x1="23" y1="168" x2="417" y2="168"
+        stroke="#30363d"/>
+
+  <text x="23" y="187" font-family="monospace"
+        font-size="12" fill="#8b949e">
+    M.S.E. ECE | UNIVERSITY OF MICHIGAN
+  </text>
+</svg>
