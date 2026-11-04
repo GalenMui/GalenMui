@@ -55,7 +55,7 @@ headline = make_text(
 )
 
 subtitle = make_text(
-    "COMPUTER ARCHITECTURE  •  DSP",
+    "COMPUTER ARCHITECTURE • DSP",
     "IBMPlexMono-Regular.ttf",
     30, 552, GREY
 )
@@ -64,13 +64,13 @@ layers = [name, headline, subtitle]
 
 # Fixed, nonoverlapping text locations
 positions = [
-    (70, 53),
-    (70, 126),
-    (70, 245),
+    (70, 64),
+    (70, 110),
+    (70, 213),
 ]
 
-assert positions[0][1] + name.height + 22 < positions[1][1]
-assert positions[1][1] + headline.height + 20 < positions[2][1]
+assert positions[0][1] + name.height + 8 < positions[1][1]
+assert positions[1][1] + headline.height + 12 < positions[2][1]
 assert positions[2][1] + subtitle.height < H - 20
 
 for (x, y), layer in zip(positions, layers):
@@ -103,7 +103,7 @@ def render(t):
     )
 
     d.rectangle(
-        (46, 126, 54, 207),
+        (46, 110, 54, 190),
         fill=(*ORANGE, 255),
     )
 
