@@ -4,8 +4,8 @@ import sys
 
 path = Path(sys.argv[1])
 
-FISH_SCALE = 1.0
-SWIM_RADIUS = 0.65
+FISH_SCALE = 0.70
+SWIM_RADIUS = 1.15
 PADDING = 30
 
 placed = []
