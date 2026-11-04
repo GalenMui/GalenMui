@@ -6,133 +6,155 @@ OUT = Path(sys.argv[1])
 OUT.parent.mkdir(parents=True, exist_ok=True)
 
 W, H = 680, 320
-FPS = 12
-FRAMES = 72
+FPS, SECONDS = 12, 6
 
 BG = (244, 243, 237)
-INK = (24, 28, 32)
-GREY = (82, 88, 93)
-BORDER = (193, 196, 199)
-ORANGE = (241, 95, 35)
+INK = (34, 42, 48)
+MUTED = (86, 99, 111)
+BORDER = (207, 211, 211)
+BLUE = (102, 122, 143)
+LIGHT_BLUE = (179, 195, 207)
 
 FONT_DIR = Path(".github/fonts")
 
-def make_text(content, filename, desired_size, max_width, rgb):
-    size = desired_size
+def text_layer(value, filename, preferred_size, max_width, color):
+    size = preferred_size
 
-    while True:
+    while size >= 15:
         font = ImageFont.truetype(str(FONT_DIR / filename), size)
-        bbox = font.getbbox(content)
-        width = bbox[2] - bbox[0]
+        left, top, right, bottom = font.getbbox(value)
 
-        if width <= max_width or size <= 12:
+        if right - left <= max_width:
             break
 
         size -= 1
 
-    height = bbox[3] - bbox[1]
+    width, height = right - left, bottom - top
     layer = Image.new("RGBA", (width + 2, height + 2))
 
     ImageDraw.Draw(layer).text(
-        (-bbox[0], -bbox[1]),
-        content,
+        (-left + 1, -top + 1),
+        value,
         font=font,
-        fill=(*rgb, 255),
+        fill=(*color, 255)
     )
 
     return layer
 
-name = make_text(
+name = text_layer(
     "GALEN MUI",
     "IBMPlexSansCondensed-Regular.ttf",
-    37, 560, GREY
+    34, 545, MUTED
 )
 
-headline = make_text(
+headline = text_layer(
     "ASIC DESIGN",
     "IBMPlexSansCondensed-Bold.ttf",
-    100, 552, INK
+    78, 555, INK
 )
 
-subtitle = make_text(
-    "COMPUTER ARCHITECTURE • DSP",
+subtitle = text_layer(
+    "Computer Architecture • DSP",
     "IBMPlexMono-Regular.ttf",
-    30, 552, GREY
+    27, 560, MUTED
 )
 
-layers = [name, headline, subtitle]
-
-# Fixed, nonoverlapping text locations
-positions = [
-    (70, 64),
-    (70, 110),
-    (70, 213),
+items = [
+    (name, (58, 67), (1.65, 2.16)),
+    (headline, (58, 120), (2.05, 2.86)),
+    (subtitle, (58, 233), (2.96, 3.66)),
 ]
 
-assert positions[0][1] + name.height + 8 < positions[1][1]
-assert positions[1][1] + headline.height + 12 < positions[2][1]
-assert positions[2][1] + subtitle.height < H - 20
-
-for (x, y), layer in zip(positions, layers):
-    assert x + layer.width < W - 35
+# Check that text regions do not overlap
+assert 67 + name.height + 15 < 120
+assert 120 + headline.height + 14 < 203
+assert 233 + subtitle.height < H - 35
+assert all(x + layer.width < W - 35
+           for layer, (x, _), _ in items)
 
 def smooth(v):
     v = max(0.0, min(1.0, v))
-    return v * v * (3.0 - 2.0 * v)
+    return v * v * (3 - 2 * v)
 
-def visible(t, start, end):
-    # Begin with a complete, readable frame.
-    if t < 1.65:
+def progress(t, start, end):
+    # Display the completed card first
+    if t < 1.05:
         return 1.0
 
-    # Wipe text away before the next reveal.
-    if t < 2.02:
-        return 1.0 - smooth((t - 1.65) / 0.37)
+    # Clear it smoothly before replaying
+    if t < 1.42:
+        return 1.0 - smooth((t - 1.05) / 0.37)
 
     return smooth((t - start) / (end - start))
 
-def render(t):
-    im = Image.new("RGBA", (W, H), (*BG, 255))
-    d = ImageDraw.Draw(im)
+def draw_frame(t):
+    img = Image.new("RGBA", (W, H), (*BG, 255))
+    d = ImageDraw.Draw(img)
 
     d.rounded_rectangle(
         (2, 2, W - 3, H - 3),
-        radius=15,
+        radius=13,
         outline=(*BORDER, 255),
-        width=2,
+        width=2
     )
 
-    d.rectangle(
-        (46, 110, 54, 190),
-        fill=(*ORANGE, 255),
-    )
+    # Two small blue blocks slide into place
+    squares = progress(t, 1.55, 2.20)
 
-    schedules = [
-        (2.13, 2.65),
-        (2.42, 3.30),
-        (3.13, 4.00),
-    ]
+    if squares > 0:
+        offset = round((1 - squares) * 22)
 
-    for layer, pos, schedule in zip(layers, positions, schedules):
-        progress = visible(t, *schedule)
+        d.rectangle(
+            (589 + offset, 69, 601 + offset, 81),
+            fill=(*BLUE, 255)
+        )
 
-        if progress > 0:
-            width = max(1, int(layer.width * progress))
-            part = layer.crop((0, 0, width, layer.height))
-            im.alpha_composite(part, pos)
+        d.rectangle(
+            (609 + offset, 59, 632 + offset, 82),
+            fill=(*LIGHT_BLUE, 255)
+        )
 
-    return im.convert("RGB")
+    # Short underline expands horizontally
+    line = progress(t, 2.60, 3.16)
 
-images = [
-    render(i / FPS)
-    for i in range(FRAMES)
+    if line > 0:
+        d.rectangle(
+            (58, 204, 58 + round(112 * line), 209),
+            fill=(*BLUE, 255)
+        )
+
+        if line > 0.70:
+            d.rectangle(
+                (177, 204,
+                 177 + round(27 * smooth((line - .70) / .30)),
+                 209),
+                fill=(*LIGHT_BLUE, 255)
+            )
+
+    # Reveal each line of text independently
+    for layer, (x, y), (start, end) in items:
+        visible = progress(t, start, end)
+
+        if visible > 0:
+            width = max(1, round(layer.width * visible))
+            part = layer.crop(
+                (0, 0, width, layer.height)
+            )
+            img.alpha_composite(part, (x, y))
+
+    return img.convert("RGB")
+
+raw_frames = [
+    draw_frame(i / FPS)
+    for i in range(FPS * SECONDS)
 ]
 
-reference = images[0].quantize(colors=128, dither=0)
+# Stable GIF palette, compatible with older Pillow
+reference = raw_frames[0].quantize(colors=128, dither=0)
 
 frames = [
     im.quantize(palette=reference, dither=0)
-    for im in images
+    for im in raw_frames
 ]
 
 frames[0].save(
@@ -142,7 +164,7 @@ frames[0].save(
     duration=round(1000 / FPS),
     loop=0,
     optimize=True,
-    disposal=2,
+    disposal=2
 )
 
-print(f"Generated {OUT}")
+print(f"Generated {OUT}: {W}x{H}")
