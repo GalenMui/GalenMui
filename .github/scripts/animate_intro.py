@@ -6,147 +6,142 @@ OUT = Path(sys.argv[1])
 OUT.parent.mkdir(parents=True, exist_ok=True)
 
 W, H = 680, 320
-FPS = 10
-SECONDS = 4.8
-TOTAL = int(FPS * SECONDS)
+FPS = 12
+FRAMES = 72
 
-BG = (244, 243, 237, 255)
-INK = (24, 28, 32, 255)
-MUTED = (108, 112, 118, 255)
-LINE = (193, 196, 199, 255)
-ACCENT = (241, 95, 35, 255)
+BG = (244, 243, 237)
+INK = (24, 28, 32)
+GREY = (82, 88, 93)
+BORDER = (193, 196, 199)
+ORANGE = (241, 95, 35)
 
 FONT_DIR = Path(".github/fonts")
-title_font = ImageFont.truetype(str(FONT_DIR / "IBMPlexSansCondensed-Bold.ttf"), 66)
-name_font = ImageFont.truetype(str(FONT_DIR / "IBMPlexSansCondensed-Regular.ttf"), 30)
-sub_font = ImageFont.truetype(str(FONT_DIR / "IBMPlexMono-Medium.ttf"), 25)
-small_font = ImageFont.truetype(str(FONT_DIR / "IBMPlexMono-Regular.ttf"), 18)
-tiny_font = ImageFont.truetype(str(FONT_DIR / "IBMPlexMono-Regular.ttf"), 13)
 
-def smooth(x):
-    x = max(0.0, min(1.0, x))
-    return x * x * (3 - 2 * x)
+def make_text(content, filename, desired_size, max_width, rgb):
+    size = desired_size
 
-def seg(t, a, b):
-    return smooth((t - a) / (b - a))
+    while True:
+        font = ImageFont.truetype(str(FONT_DIR / filename), size)
+        bbox = font.getbbox(content)
+        width = bbox[2] - bbox[0]
 
-def text_img(text, font, color):
-    bbox = font.getbbox(text)
-    w = bbox[2] - bbox[0]
-    h = bbox[3] - bbox[1]
-    img = Image.new("RGBA", (w + 8, h + 8), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    d.text((4 - bbox[0], 4 - bbox[1]), text, font=font, fill=color)
-    return img
+        if width <= max_width or size <= 12:
+            break
 
-def paste_reveal(base, layer, xy, reveal=1.0, alpha=1.0, y_shift=0):
-    if reveal <= 0 or alpha <= 0:
-        return
-    reveal = max(0.0, min(1.0, reveal))
-    alpha = max(0.0, min(1.0, alpha))
-    w = max(1, int(layer.width * reveal))
-    crop = layer.crop((0, 0, w, layer.height))
-    if alpha < 1.0:
-        crop = crop.copy()
-        crop.putalpha(crop.getchannel("A").point(lambda p: int(p * alpha)))
-    base.alpha_composite(crop, (xy[0], xy[1] + y_shift))
+        size -= 1
 
-def draw_scaffold(img):
-    d = ImageDraw.Draw(img)
+    height = bbox[3] - bbox[1]
+    layer = Image.new("RGBA", (width + 2, height + 2))
 
-    d.rounded_rectangle((2, 2, W - 3, H - 3), radius=14, outline=LINE, width=2)
-    d.line((40, 48, W - 30, 48), fill=LINE, width=1)
-    d.line((40, 85, W - 30, 85), fill=LINE, width=1)
-    d.line((40, 266, W - 30, 266), fill=LINE, width=1)
-    d.line((505, 15, 505, H - 24), fill=LINE, width=1)
+    ImageDraw.Draw(layer).text(
+        (-bbox[0], -bbox[1]),
+        content,
+        font=font,
+        fill=(*rgb, 255),
+    )
 
-    # top-left crosshair
-    d.line((20, 24, 34, 24), fill=MUTED, width=1)
-    d.line((27, 17, 27, 31), fill=MUTED, width=1)
-    d.ellipse((21, 18, 33, 30), outline=MUTED, width=1)
+    return layer
 
-    # bottom-right crosshair
-    d.line((W - 46, H - 24, W - 18, H - 24), fill=MUTED, width=1)
-    d.line((W - 32, H - 38, W - 32, H - 10), fill=MUTED, width=1)
+name = make_text(
+    "GALEN MUI",
+    "IBMPlexSansCondensed-Regular.ttf",
+    37, 560, GREY
+)
 
-    d.text((45, 20), "01 / 02", font=tiny_font, fill=MUTED)
-    d.text((W - 97, 20), "PROFILE", font=tiny_font, fill=MUTED)
+headline = make_text(
+    "ASIC DESIGN",
+    "IBMPlexSansCondensed-Bold.ttf",
+    100, 552, INK
+)
 
-def build_full():
-    im = Image.new("RGBA", (W, H), BG)
-    draw_scaffold(im)
+subtitle = make_text(
+    "COMPUTER ARCHITECTURE  •  DSP",
+    "IBMPlexMono-Regular.ttf",
+    30, 552, GREY
+)
+
+layers = [name, headline, subtitle]
+
+# Fixed, nonoverlapping text locations
+positions = [
+    (70, 53),
+    (70, 126),
+    (70, 245),
+]
+
+assert positions[0][1] + name.height + 22 < positions[1][1]
+assert positions[1][1] + headline.height + 20 < positions[2][1]
+assert positions[2][1] + subtitle.height < H - 20
+
+for (x, y), layer in zip(positions, layers):
+    assert x + layer.width < W - 35
+
+def smooth(v):
+    v = max(0.0, min(1.0, v))
+    return v * v * (3.0 - 2.0 * v)
+
+def visible(t, start, end):
+    # Begin with a complete, readable frame.
+    if t < 1.65:
+        return 1.0
+
+    # Wipe text away before the next reveal.
+    if t < 2.02:
+        return 1.0 - smooth((t - 1.65) / 0.37)
+
+    return smooth((t - start) / (end - start))
+
+def render(t):
+    im = Image.new("RGBA", (W, H), (*BG, 255))
     d = ImageDraw.Draw(im)
 
-    d.rectangle((58, 110, 66, 205), fill=ACCENT)
+    d.rounded_rectangle(
+        (2, 2, W - 3, H - 3),
+        radius=15,
+        outline=(*BORDER, 255),
+        width=2,
+    )
 
-    d.text((86, 92), "GALEN MUI", font=name_font, fill=INK)
-    d.text((86, 112), "ASIC DESIGN", font=title_font, fill=INK)
-    d.text((89, 206), "COMPUTER ARCHITECTURE", font=sub_font, fill=(70, 74, 79, 255))
-    d.text((44, 278), "RTL / SystemVerilog / VLSI", font=small_font, fill=MUTED)
+    d.rectangle(
+        (46, 126, 54, 207),
+        fill=(*ORANGE, 255),
+    )
 
-    return im
+    schedules = [
+        (2.13, 2.65),
+        (2.42, 3.30),
+        (3.13, 4.00),
+    ]
 
-STATIC = build_full()
+    for layer, pos, schedule in zip(layers, positions, schedules):
+        progress = visible(t, *schedule)
 
-name_layer = text_img("GALEN MUI", name_font, INK)
-title_layer = text_img("ASIC DESIGN", title_font, INK)
-sub_layer = text_img("COMPUTER ARCHITECTURE", sub_font, (70, 74, 79, 255))
-foot_layer = text_img("RTL / SystemVerilog / VLSI", small_font, MUTED)
+        if progress > 0:
+            width = max(1, int(layer.width * progress))
+            part = layer.crop((0, 0, width, layer.height))
+            im.alpha_composite(part, pos)
 
-def frame(i):
-    t = i / FPS
+    return im.convert("RGB")
 
-    # hold nice still frame first
-    if t < 1.0:
-        return STATIC.copy()
+images = [
+    render(i / FPS)
+    for i in range(FRAMES)
+]
 
-    t -= 1.0
+reference = images[0].quantize(colors=128, dither=0)
 
-    im = Image.new("RGBA", (W, H), BG)
-    draw_scaffold(im)
-    d = ImageDraw.Draw(im)
-
-    bar = seg(t, 0.05, 0.35)
-    if bar > 0:
-        h = int(95 * bar)
-        d.rectangle((58, 205 - h, 66, 205), fill=ACCENT)
-
-    n = seg(t, 0.15, 0.55)
-    paste_reveal(im, name_layer, (86, 92), reveal=n, alpha=n, y_shift=round(8 * (1 - n)))
-
-    ti = seg(t, 0.45, 1.05)
-    paste_reveal(im, title_layer, (86, 112), reveal=ti, alpha=ti, y_shift=round(12 * (1 - ti)))
-
-    su = seg(t, 1.08, 1.60)
-    paste_reveal(im, sub_layer, (89, 206), reveal=su, alpha=su, y_shift=round(6 * (1 - su)))
-
-    fo = seg(t, 1.45, 1.95)
-    paste_reveal(im, foot_layer, (44, 278), reveal=fo, alpha=fo, y_shift=round(4 * (1 - fo)))
-
-    # subtle moving registration tick while holding
-    hold = seg(t, 1.95, 3.30)
-    if hold > 0:
-        x = int(518 + 105 * ((t - 1.95) / 1.35))
-        x = max(518, min(W - 44, x))
-        d.line((x, 58, x, 80), fill=(168, 171, 174, int(190 * hold)), width=1)
-
-    return im
-
-frames_rgba = [frame(i) for i in range(TOTAL)]
-reference = STATIC.convert("RGB").quantize(colors=128, dither=0)
-frames = [f.convert("RGB").quantize(palette=reference, dither=0) for f in frames_rgba]
-
-durations = []
-for i in range(TOTAL):
-    durations.append(130 if i < FPS else int(1000 / FPS))
+frames = [
+    im.quantize(palette=reference, dither=0)
+    for im in images
+]
 
 frames[0].save(
     OUT,
     save_all=True,
     append_images=frames[1:],
-    duration=durations,
+    duration=round(1000 / FPS),
     loop=0,
-    optimize=False,
+    optimize=True,
     disposal=2,
 )
 

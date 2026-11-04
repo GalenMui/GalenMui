@@ -7,7 +7,6 @@ on:
   push:
     paths:
       - .github/workflows/koi.yml
-      - .github/scripts/tighten_koi.py
       - .github/scripts/animate_intro.py
 
 permissions:
@@ -55,6 +54,10 @@ jobs:
           sed -i 's/const ADULT_BODY_WIDTH_FRACTION: f64 = 0.2;/const ADULT_BODY_WIDTH_FRACTION: f64 = 0.18;/' src/render.rs
           sed -i 's/const MATURE_BODY_WIDTH_GAIN: f64 = 0.045;/const MATURE_BODY_WIDTH_GAIN: f64 = 0.010;/' src/render.rs
 
+          # Smaller koi, naturally wider circular swimming path
+          sed -i '/^    let body_width_fraction = interpolate(/i\    let body_length_pixels = body_length_pixels * 0.52;' src/render.rs
+          grep -Fq 'let body_length_pixels = body_length_pixels * 0.52;' src/render.rs
+
           cargo build --release --locked
 
           ./target/release/git-koi collect \
@@ -66,10 +69,9 @@ jobs:
             --output-dir "$GITHUB_WORKSPACE/koi" \
             --body white
 
-      - name: Enlarge koi and trim whitespace
+      - name: Generate intro animation
         run: |
           python -m pip install --quiet pillow
-          python .github/scripts/tighten_koi.py koi/koi.gif
           python .github/scripts/animate_intro.py assets/intro.gif
 
       - name: Commit koi
