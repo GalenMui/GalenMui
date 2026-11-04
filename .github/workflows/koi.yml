@@ -8,6 +8,7 @@ on:
     paths:
       - .github/workflows/koi.yml
       - .github/scripts/animate_intro.py
+      - .github/scripts/animate_languages.py
 
 permissions:
   contents: write
@@ -74,10 +75,15 @@ jobs:
           python -m pip install --quiet pillow
           python .github/scripts/animate_intro.py assets/intro.gif
 
+      - name: Animate original language stats card
+        run: |
+          python -m pip install --quiet pillow cairosvg
+          python .github/scripts/animate_languages.py assets/languages.gif
+
       - name: Commit koi
         shell: bash
         run: |
-          git add koi/koi.gif assets/intro.gif
+          git add koi/koi.gif assets/intro.gif assets/languages.gif README.md
           if git diff --cached --quiet; then
             exit 0
           fi
