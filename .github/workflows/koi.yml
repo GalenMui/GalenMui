@@ -67,7 +67,7 @@ jobs:
           ./target/release/git-koi render \
             "$RUNNER_TEMP/koi-snapshot.json" \
             --output-dir "$GITHUB_WORKSPACE/koi" \
-            --body white
+            --body asagi
 
       - name: Generate intro animation
         run: |
