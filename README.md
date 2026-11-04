@@ -1,7 +1,7 @@
 <table align="center">
   <tr>
     <td align="center" valign="middle" width="50%">
-      <img src="koi/koi.gif" width="285" alt="My GitHub Koi" />
+      <img src="koi/koi.gif" width="250" alt="My GitHub Koi" />
     </td>
     <td align="center" valign="middle" width="50%">
       <img src="assets/intro.gif" width="340" alt="About Galen" />

@@ -4,9 +4,10 @@ import sys
 
 path = Path(sys.argv[1])
 
-FISH_SCALE = 0.70
-SWIM_RADIUS = 1.15
-PADDING = 30
+# Smaller fish, bigger swimming circle
+FISH_SCALE = 0.52
+SWIM_RADIUS = 1.60
+PADDING = 46
 
 placed = []
 bounds_all = None
@@ -24,26 +25,19 @@ with Image.open(path) as gif:
         fish = rgba.crop(box)
         fish = fish.resize(
             (
-                round(fish.width * FISH_SCALE),
-                round(fish.height * FISH_SCALE),
+                max(1, round(fish.width * FISH_SCALE)),
+                max(1, round(fish.height * FISH_SCALE)),
             ),
             Image.Resampling.NEAREST,
         )
 
-        cx = w / 2 + (
-            (box[0] + box[2]) / 2 - w / 2
-        ) * SWIM_RADIUS
-        cy = h / 2 + (
-            (box[1] + box[3]) / 2 - h / 2
-        ) * SWIM_RADIUS
+        cx = w / 2 + ((box[0] + box[2]) / 2 - w / 2) * SWIM_RADIUS
+        cy = h / 2 + ((box[1] + box[3]) / 2 - h / 2) * SWIM_RADIUS
 
         x = round(cx - fish.width / 2)
         y = round(cy - fish.height / 2)
 
-        placed.append(
-            (fish, x, y, frame.info.get("duration", default_duration))
-        )
-
+        placed.append((fish, x, y, frame.info.get("duration", default_duration)))
         current = (x, y, x + fish.width, y + fish.height)
 
         if bounds_all is None:
@@ -61,7 +55,6 @@ if not placed:
 
 x0, y0, x1, y1 = bounds_all
 
-# Crop using every frame, not just the first one.
 side = max(x1 - x0, y1 - y0) + 2 * PADDING
 left = round((x0 + x1 - side) / 2)
 top = round((y0 + y1 - side) / 2)
@@ -73,7 +66,6 @@ for fish, x, y, duration in placed:
     canvas = Image.new("RGBA", (side, side))
     canvas.paste(fish, (x - left, y - top))
 
-    # Preserve transparent pixels and exact pixel colors.
     colors = sorted({
         color[:3]
         for _, color in canvas.getcolors(side * side)
@@ -83,10 +75,7 @@ for fish, x, y, duration in placed:
     if len(colors) > 255:
         raise SystemExit("Too many GIF colors")
 
-    lookup = {
-        color: index + 1
-        for index, color in enumerate(colors)
-    }
+    lookup = {color: index + 1 for index, color in enumerate(colors)}
 
     indexed = Image.new("P", (side, side))
     palette = [0, 0, 0]
